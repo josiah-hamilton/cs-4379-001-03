@@ -74,10 +74,11 @@ int choose(int* dist, int n, int* found) {
 }
 
 int graphsynth(int **edge, int n) {
+    int maxweight = 20;
     for (int i = 0; i < n; i++) {
         edge[i][i] = 0;                 // assume no edges contain one node
         for (int j = 1; j < i; j++) {
-            int weight = rand() % 19 + 1;
+            int weight = rand() % maxweight + 1;
             if ( weight > 1 ) { // 5% chance of getting a link on a given iter
                 edge[i][j] = 0;
                 edge[j][i] = 0;
@@ -101,7 +102,7 @@ int graphsynth(int **edge, int n) {
             while (j != i ) {
                 j = rand()%n;
             }
-            int weight = rand() % 19 + 1;
+            int weight = rand() % maxweight + 1;
             edge[i][j] = weight;
             edge[j][i] = weight;
         }
