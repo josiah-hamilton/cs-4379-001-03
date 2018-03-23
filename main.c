@@ -20,42 +20,70 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Status status;
+
     
     int source, n, **edge, *dist;
 
     source  = SOURCE;
     n       = NODES;
-    
+
+    int chunksize = n / size;
+    int chunkremaindersize = n % size; // rank size - 1 gets the remainder as well
+    int edgechunksize = (n*n) / size; 
+    int edgechunkremaindersize = (n*n) / size;
+
     edge = (int**) calloc(n*n, sizeof(int)); // 2D symmetric-about-diag matrix
     dist = (int*)  callod(n,   sizeof(int));
 
     graphsynth(edge, n);
 
+    if ( rank == 0 ) {
+        int i, j, count, *found;
+        found = (int*) calloc(n,sizeof(int));
 
-    int i, j, count, *found;
-    found = (int*) calloc(n,sizeof(int));
+        for (i=0; i < n; i++) {     //
+            found[i] = 0;
+            dist[i] = edge[source];
+        }
 
-    for (i=0; i < n; i++) {     //
-        found[i] = 0;
-        dist[i] = edge[source];
-    }
+        found[source] = 1;          // source node is a given
 
-    found[source] = 1;          // source node is a given
-
-    count = 1;
-    while (count < n) {
-        j = choose(dist, n, found);
-        found[j] = 1;
-        count++;
-        for (i = 0; i < n; i++) {
-            if (!found[i]) {
-                dist[i] = min(dist[i] + edge[j][i]);
+        count = 1;
+        while (count < n) {
+            j = choose(dist, n, found);
+            found[j] = 1;
+            count++;
+            for (i = 0; i < n; i++) {
+                if (!found[i]) {
+                    dist[i] = min(dist[i] + edge[j][i]);
+                }
             }
         }
-    }
-    free(found);
+        free(found);
 
+    } else {  // nonzero ranks
+        int **edgechunk = (int**)calloc(edgechunksize,sizeof(int));
+        int *foundchunk = (int*) calloc(chunksize, sizeof(int));
+        int **edgechunkremainder; //remainder of edges
+        int *foundchunkremainder;     //remainder of indeces
+        int localmin, remaindermin;
 
+            
+        MPI_Recv(edgechunk, edgechunksize, MPI_INT, 0, rank, MPI_COMM_WORLD);
+        MPI_Recv(foundchunk, chunksize, MPI_INT, 0, rank*n, MPI_COMM_WORLD);
+
+        localmin = choose(edgechunk,chunksize,foundchunk);
+
+        if (rank == (size - 1)) {
+            edgechunkremainder  =(int**)calloc(edgechunkremaindersize,sizeof(int));
+            foundchunkremainder =(int*) calloc(chunkremaindersize,sizeof(int));
+            MPI_Recv(edgechunk, edgechunkremaindersize, MPI_INT, 0, size, MPI_COMM_WORLD);
+            MPI_Recv(foundchunk, chunkremaindersize, MPI_INT, 0, size*n, MPI_COMM_WORLD);
+            remaindermin = choose(edgechunkremainder,chunkremaindersize,foundchunkremainder);
+            localmin = min(localmin, remaindermin)
+        }
+        MPI_Send (&localmin, 1, MPI_INT, 0, rank, MPI_COMM_WORLD);
+    }  // nonzero ranks
 
     return MPI_Finalize(); 
 }
