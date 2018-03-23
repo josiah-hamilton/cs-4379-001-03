@@ -9,7 +9,7 @@
 #define DEBUG
 
 int choose(int*, int, int*);
-int graphsynth(int**, int);
+void graphsynth(int**, int);
 
 int main(int argc, char** argv) {
     srand(time(NULL)); // seed clock for rand()
@@ -50,7 +50,11 @@ int main(int argc, char** argv) {
 
         count = 1;
         while (count < n) {
+            for (int i = 1; i < size; i++) {
+                MPI_Send 
+            }
             j = choose(dist, n, found);
+            
             found[j] = 1;
             count++;
             for (i = 0; i < n; i++) {
@@ -101,13 +105,14 @@ int choose(int* dist, int n, int* found) {
     return leastPosition;
 }
 
-int graphsynth(int **edge, int n) {
+void graphsynth(int **edge, int n) {
     int maxweight = 20;
     for (int i = 0; i < n; i++) {
         edge[i][i] = 0;                 // assume no edges contain one node
         for (int j = 1; j < i; j++) {
+            int exist  = rand() % maxweight + 1;
             int weight = rand() % maxweight + 1;
-            if ( weight > 1 ) { // 5% chance of getting a link on a given iter
+            if ( exist > 1 ) { // 5% chance of getting a link on a given iter
                 edge[i][j] = 0;
                 edge[j][i] = 0;
             } else {
@@ -119,7 +124,7 @@ int graphsynth(int **edge, int n) {
     // check that all nodes are connected at least once
     for (int i = 0; i < n; i++) {
         int connected = 0;
-        for (int j = 0; j < i; j++) {
+        for (int j = 0; (j < i) && (connected == 0); j++) {
             if (edge[i][j] > connected) {
                 connected = edge[i][j];
             }
