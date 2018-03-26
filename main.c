@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     int chunkremaindersize = n % size; // rank size - 1 gets the remainder as well
 
     edge = (int**) calloc(n*n, sizeof(int)); // 2D symmetric-about-diag matrix
-    dist = (int*)  callod(n,   sizeof(int));
+    dist = (int*)  calloc(n,   sizeof(int));
 
     graphsynth(edge, n);
 
@@ -49,22 +49,22 @@ int main(int argc, char** argv) {
 
         count = 1;
         while (count < n) {
-            int* localminima = (int*)calloc(size,sizeof(int))
+            int* localminima = (int*)calloc(size,sizeof(int));
             for (int i = 1; i < size; i++) {
-                MPI_Send(dist+i*chunksize,chunksize,MPI_Int,i,i,MPI_COMM_WORLD);
-                MPI_Send(found+i*chunksize,chunksize,MPI_Int,i,i+size,MPI_COMM_WORLD);
+                MPI_Send(dist+i*chunksize,chunksize,MPI_INT,i,i,MPI_COMM_WORLD);
+                MPI_Send(found+i*chunksize,chunksize,MPI_INT,i,i+size,MPI_COMM_WORLD);
             }
             localminima[0] = choose(dist, chunksize, found); 
 
             // To generalize the number of nodes:MPI_Ranks, rank 0 also
             // processes the remainder of the nodes not assigned to others
             for (int i = 1; i < size; i++) {
-                MPI_Recv(localminima[i], 1, MPI_Int, 0, i+size+size, MPI_COMM_WORLD);
+                MPI_Recv(localminima[i], 1, MPI_INT, 0, i+size+size, MPI_COMM_WORLD, &status);
             }
             
             if (chunkremaindersize > 0) {
                 int remaindermin = choose(dist+n/rank,chunkremaindersize,found+n/size);
-                localmin = min(localmin, remaindermin);
+                //localmin = min(localmin, remaindermin);
                 if ( remaindermin < localminima[0] ) {
                     localminima[0] = remaindermin;
                 }
@@ -89,8 +89,8 @@ int main(int argc, char** argv) {
         int localmin;
 
             
-        MPI_Recv( distchunk, chunksize, MPI_INT, 0, rank,   MPI_COMM_WORLD);
-        MPI_Recv(foundchunk, chunksize, MPI_INT, 0, rank+size, MPI_COMM_WORLD);
+        MPI_Recv( distchunk, chunksize, MPI_INT, 0, rank,   MPI_COMM_WORLD, &status);
+        MPI_Recv(foundchunk, chunksize, MPI_INT, 0, rank+size, MPI_COMM_WORLD, &status);
 
         localmin = choose(distchunk,chunksize,foundchunk);
 
