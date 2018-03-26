@@ -126,16 +126,16 @@ int minimum(int* nums, int n) {
 void graphsynth(int **edge, int n) {
     int maxweight = 20;
     for (int i = 0; i < n; i++) {
-        edge[i][i] = 0;                 // assume no edges contain one node
+        edge[n*i+i] = 0;                 // assume no edges contain one node
         for (int j = 1; j < i; j++) {
             int exist  = rand() % maxweight + 1;
             int weight = rand() % maxweight + 1;
             if ( exist > 1 ) { // 5% chance of getting a link on a given iter
-                edge[i][j] = 0;
-                edge[j][i] = 0;
+                edge[n*i+j] = 0;
+                edge[n*j+i] = 0;
             } else {
-                edge[i][j] = weight;
-                edge[j][i] = weight;
+                edge[n*i+j] = weight;
+                edge[n*j+i] = weight;
             }
         }
     }
@@ -143,8 +143,8 @@ void graphsynth(int **edge, int n) {
     for (int i = 0; i < n; i++) {
         int connected = 0;
         for (int j = 0; (j < i) && (connected == 0); j++) {
-            if (edge[i][j] > connected) {
-                connected = edge[i][j];
+            if (edge[n*i+j] > connected) {
+                connected = edge[n*i+j];
             }
         }
         if (connected == 0) {
@@ -154,8 +154,8 @@ void graphsynth(int **edge, int n) {
                 j = rand()%n;
             }
             int weight = rand() % maxweight + 1;
-            edge[i][j] = weight;
-            edge[j][i] = weight;
+            edge[n*i+j] = weight;
+            edge[n*j+i] = weight;
         }
     }
 }
