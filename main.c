@@ -3,7 +3,9 @@
 #include<stdlib.h> // rand(), srand()
 #include<time.h>
 
+#ifndef NODES
 #define NODES 100
+#endif
 #define EDGES 300
 #define SOURCE 0
 //#define DEBUG
