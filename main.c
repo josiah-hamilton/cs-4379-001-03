@@ -10,7 +10,8 @@
 
 int choose(int*, int, int*);
 int minimum(int*, int);
-void graphsynth(int**, int);
+int min(int, int);
+void graphsynth(int*, int);
 
 int main(int argc, char** argv) {
     srand(time(NULL)); // seed clock for rand()
@@ -23,7 +24,7 @@ int main(int argc, char** argv) {
     MPI_Status status;
 
     
-    int source, n, **edge, *dist;
+    int source, n, *edge, *dist;
 
     source  = SOURCE;
     n       = NODES;
@@ -31,14 +32,15 @@ int main(int argc, char** argv) {
     int chunksize = n / size;
     int chunkremaindersize = n % size; // rank size - 1 gets the remainder as well
 
-    edge = (int**) calloc(n*n, sizeof(int)); // 2D symmetric-about-diag matrix
+    edge = (int*) calloc(n*n, sizeof(int)); // 2D symmetric-about-diag matrix
     dist = (int*)  calloc(n,   sizeof(int));
 
     graphsynth(edge, n);
 
     if ( rank == 0 ) {
-        int i, j, count, *found;
+        int i, j, count, *found, *localminima;
         found = (int*) calloc(n,sizeof(int));
+        localminima = (int*)calloc(size,sizeof(int));
 
         for (i=0; i < n; i++) {     //
             found[i] = 0;
@@ -49,7 +51,6 @@ int main(int argc, char** argv) {
 
         count = 1;
         while (count < n) {
-            int* localminima = (int*)calloc(size,sizeof(int));
             for (int i = 1; i < size; i++) {
                 MPI_Send(dist+i*chunksize,chunksize,MPI_INT,i,i,MPI_COMM_WORLD);
                 MPI_Send(found+i*chunksize,chunksize,MPI_INT,i,i+size,MPI_COMM_WORLD);
@@ -59,15 +60,13 @@ int main(int argc, char** argv) {
             // To generalize the number of nodes:MPI_Ranks, rank 0 also
             // processes the remainder of the nodes not assigned to others
             for (int i = 1; i < size; i++) {
-                MPI_Recv(localminima[i], 1, MPI_INT, 0, i+size+size, MPI_COMM_WORLD, &status);
+                MPI_Recv(localminima+i, 1, MPI_INT, i, i+size+size, MPI_COMM_WORLD, &status);
             }
             
             if (chunkremaindersize > 0) {
                 int remaindermin = choose(dist+n/rank,chunkremaindersize,found+n/size);
                 //localmin = min(localmin, remaindermin);
-                if ( remaindermin < localminima[0] ) {
-                    localminima[0] = remaindermin;
-                }
+                localminima[0] = min(localminima[0],remaindermin);
             }
 
             //j = choose(dist, n, found);
@@ -77,7 +76,7 @@ int main(int argc, char** argv) {
             count++;
             for (i = 0; i < n; i++) {
                 if (!found[i]) {
-                    dist[i] = min(dist[i] + edge[j][i]);
+                    dist[i] = min(dist[i], edge[n*i+j]);
                 }
             }
         }
@@ -123,7 +122,11 @@ int minimum(int* nums, int n) {
     return min;
 }
 
-void graphsynth(int **edge, int n) {
+int min(int a, int b) {
+    return (a<b) ? a : b;
+}
+
+void graphsynth(int *edge, int n) {
     int maxweight = 20;
     for (int i = 0; i < n; i++) {
         edge[n*i+i] = 0;                 // assume no edges contain one node
